@@ -1,0 +1,141 @@
+#include "bits/stdc++.h"
+
+using namespace std;
+
+#define sz(x) (int) x.size()
+
+struct suffix_array
+{
+    suffix_array(const char *S) : N(strlen(S))
+    {
+        vector<int> V;
+        for (int i = 0; i < N; i++) V.push_back(S[i]);
+        init(V);
+    }
+
+    suffix_array(const vector<int> &VV) : N(VV.size())
+    {
+        vector<int> V(VV);
+        init(V);
+    }
+
+    /* Get longest common prefix between two suffix-indicies. */
+    int lcp(int si, int sj)
+    {
+        if (sj < si) swap(si, sj);
+        if (si == sj) return N - SA[si];
+        int len = sj - si;
+        int buck = 31 - __builtin_clz(len);
+        return min(LCP_MRQ[buck][si], LCP_MRQ[buck][sj - (1 << buck)]);
+    }
+
+    int N;
+    vector<int> SA;
+    vector<int> RA;
+
+private:
+    void compress(vector<int> &V, vector<int> &C)
+    {
+        copy(V.begin(), V.end(), C.begin());
+        sort(C.begin(), C.end());
+        auto cend = unique(C.begin(), C.end());
+        for (int i = 0; i < N; i++)
+        {
+            V[i] = lower_bound(C.begin(), cend, V[i]) - C.begin() + 1;
+        }
+        V.push_back(0);
+        C.push_back(0);
+    }
+
+    void compute_sa(vector<int> &V, vector<int> &C)
+    {
+        vector<int> T(N + 1);
+        for (int i = 0; i <= N; i++)
+            SA.push_back(i);
+        for (int ski = 0; V[SA[N]] < N; ski = ski ? ski << 1 : 1)
+        {
+            fill(C.begin(), C.end(), 0);
+            for (int i = 0; i < ski; i++)
+                T[i] = N - i;
+            for (int i = 0, p = ski; i <= N; i++)
+                if (SA[i] >= ski)
+                    T[p++] = SA[i] - ski;
+            for (int i = 0; i <= N; i++)
+                C[V[i]]++;
+            for (int i = 1; i <= N; i++)
+                C[i] += C[i - 1];
+            for (int i = N; i >= 0; i--)
+                SA[--C[V[T[i]]]] = T[i];
+
+            T[SA[0]] = 0;
+            for (int j = 1; j <= N; j++)
+            {
+                int a = SA[j];
+                int b = SA[j - 1];
+                T[a] = T[b] + (a + ski >= N || b + ski >= N ||
+                               V[a] != V[b] || V[a + ski] != V[b + ski]);
+            }
+            V.swap(T);
+        }
+    }
+
+    void compute_lcp(const vector<int> &OV)
+    {
+        LCP_MRQ.push_back(vector<int>(N));
+        int len = 0;
+        for (int i = 0; i < N; i++, len = max(0, len - 1))
+        {
+            int si = RA[i];
+            int j = SA[si - 1];
+            for (; i + len < N && j + len < N && OV[i + len] == OV[j + len]; len++);
+            LCP_MRQ[0][si - 1] = len;
+        }
+        for (int i = 1; 1 << i <= N; i++)
+        {
+            LCP_MRQ.push_back(vector<int>());
+            const vector<int> &plcp = LCP_MRQ[i - 1];
+            for (int j = 0; j + (1 << i) <= N; j++)
+            {
+                LCP_MRQ[i].push_back(min(plcp[j], plcp[j + (1 << (i - 1))]));
+            }
+        }
+    }
+
+    void init(vector<int> &V)
+    {
+        vector<int> OV(V);
+        vector<int> C(N);
+        compress(V, C);
+        compute_sa(V, C);
+        RA.resize(N + 1);
+        for (int i = 0; i <= N; i++) RA[SA[i]] = i;
+        compute_lcp(OV);
+        return; 
+    }
+
+    vector<vector<int>> LCP_MRQ;
+};
+
+int main(void) { 
+    ios_base::sync_with_stdio(0); 
+    cin.tie(0); 
+    cout.tie(0); 
+    int tc; 
+    cin >> tc; 
+    while(tc--) { 
+        string S; 
+        cin >> S; 
+        suffix_array suffix(S.c_str());
+        int ret = 0; 
+        vector<int>diff; 
+        for(int i = 1; i <= S.size(); i++) { 
+            int curr = suffix.SA[i], pre = suffix.SA[i - 1]; 
+            diff.push_back(suffix.lcp(suffix.RA[curr], suffix.RA[pre]));
+        }
+        for(int i = 1; i < diff.size(); i++) { 
+            ret += max(0, diff[i] - diff[i - 1]); 
+        }
+        cout << ret << '\n'; 
+    }
+    return 0; 
+}
