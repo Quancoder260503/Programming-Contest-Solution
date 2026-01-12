@@ -12,7 +12,7 @@ struct MaxFlow {
   int n, s, t;
   vector<int> d, ptr, q;
   vector<Edge> e;
-  vector<vector<int>> g;
+  vector<vector<int>> g
 
   MaxFlow(int _n) : n(_n), d(_n), ptr(_n), q(_n), g(_n) {
     e.clear();

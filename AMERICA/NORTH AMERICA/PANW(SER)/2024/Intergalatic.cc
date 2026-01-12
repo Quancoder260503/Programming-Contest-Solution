@@ -4,6 +4,8 @@ using namespace std;
 
 const int oo = 1e9; 
 
+
+
 int main(void) { 
  int N, M, K; 
  cin >> N >> M >> K; 
